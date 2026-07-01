@@ -1,0 +1,54 @@
+services:
+  - type: web
+    name: leettrack-api
+    runtime: node
+    region: oregon
+    plan: free
+
+    # Root of the monorepo
+    rootDir: .
+
+    # Build: install all workspace deps, generate Prisma client, build NestJS
+    buildCommand: |
+      npm install --legacy-peer-deps --ignore-scripts &&
+      cd apps/api &&
+      npx prisma generate &&
+      npx prisma migrate deploy &&
+      npm run build
+
+    # Start the compiled NestJS server
+    startCommand: node apps/api/dist/main.js
+
+    # Health check endpoint
+    healthCheckPath: /api/v1/health
+
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 10000
+
+      # ── Fill these in Render dashboard ────────────────────
+      - key: DATABASE_URL
+        sync: false          # Set manually in Render dashboard
+
+      - key: REDIS_HOST
+        sync: false
+      - key: REDIS_PORT
+        sync: false
+      - key: REDIS_PASSWORD
+        sync: false
+
+      - key: JWT_SECRET
+        generateValue: true  # Render auto-generates a secure secret
+
+      - key: GOOGLE_CLIENT_ID
+        sync: false
+      - key: GOOGLE_CLIENT_SECRET
+        sync: false
+
+      - key: FRONTEND_URL
+        sync: false          # Your Vercel URL, e.g. https://leettrack.vercel.app
+
+      - key: GOOGLE_CALLBACK_URL
+        sync: false          # https://<your-render-url>.onrender.com/api/v1/auth/google/callback

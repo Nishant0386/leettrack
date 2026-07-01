@@ -1,0 +1,55 @@
+/* apps/web/src/app/globals.css */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+* {
+  border-color: theme('colors.gray.200');
+}
+
+.dark * {
+  border-color: theme('colors.gray.800');
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: theme('colors.gray.300');
+  border-radius: 4px;
+}
+.dark ::-webkit-scrollbar-thumb {
+  background: theme('colors.gray.700');
+}
+::-webkit-scrollbar-thumb:hover {
+  background: theme('colors.gray.400');
+}
+
+/* Loading skeleton shimmer */
+.skeleton {
+  background: linear-gradient(90deg, theme('colors.gray.100') 25%, theme('colors.gray.200') 50%, theme('colors.gray.100') 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+}
+.dark .skeleton {
+  background: linear-gradient(90deg, theme('colors.gray.800') 25%, theme('colors.gray.700') 50%, theme('colors.gray.800') 75%);
+  background-size: 200% 100%;
+}
+@keyframes shimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}

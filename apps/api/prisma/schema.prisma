@@ -1,0 +1,417 @@
+// packages/database/prisma/schema.prisma
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ─────────────────────────────────────────
+// ENUMS
+// ─────────────────────────────────────────
+
+enum Role {
+  SUPER_ADMIN
+  TEACHER
+  STUDENT
+}
+
+enum AssignmentStatus {
+  PENDING
+  SUBMITTED
+  GRADED
+  MISSED
+}
+
+enum DifficultyLevel {
+  EASY
+  MEDIUM
+  HARD
+}
+
+enum NotificationType {
+  ANNOUNCEMENT
+  ASSIGNMENT
+  MESSAGE
+  LIVE_CLASS
+  PERFORMANCE_ALERT
+  BADGE_EARNED
+}
+
+enum SessionStatus {
+  SCHEDULED
+  LIVE
+  COMPLETED
+  CANCELLED
+}
+
+enum RiskLevel {
+  HEALTHY
+  NEEDS_ATTENTION
+  AT_RISK
+}
+
+enum BadgeType {
+  FIRST_PROBLEM
+  STREAK_7
+  STREAK_30
+  PROBLEMS_100
+  PROBLEMS_500
+  CONSISTENCY_MASTER
+  DSA_WARRIOR
+  HARD_CHAMPION
+}
+
+// ─────────────────────────────────────────
+// USERS & AUTH
+// ─────────────────────────────────────────
+
+model User {
+  id            String   @id @default(cuid())
+  email         String   @unique
+  name          String
+  avatarUrl     String?
+  googleId      String?  @unique
+  role          Role     @default(STUDENT)
+  isActive      Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  // Relations
+  studentProfile  StudentProfile?
+  teacherProfile  TeacherProfile?
+  notifications   Notification[]
+  sentMessages    Message[]       @relation("SentMessages")
+  receivedMessages Message[]      @relation("ReceivedMessages")
+  discussionPosts DiscussionPost[] @relation("DiscussionAuthor")
+  auditLogs       AuditLog[]
+
+  @@map("users")
+}
+
+model StudentProfile {
+  id              String   @id @default(cuid())
+  userId          String   @unique
+  leetcodeUsername String?  @unique
+  leetcodeVerified Boolean  @default(false)
+  xpPoints        Int      @default(0)
+  level           String   @default("Beginner")
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  user            User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  enrollments     Enrollment[]
+  leetcodeSnapshots LeetcodeSnapshot[]
+  attendanceRecords AttendanceRecord[]
+  assignments     AssignmentSubmission[]
+  badges          StudentBadge[]
+  leaderboardEntries LeaderboardEntry[]
+
+  @@map("student_profiles")
+}
+
+model TeacherProfile {
+  id          String   @id @default(cuid())
+  userId      String   @unique
+  bio         String?
+  institution String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  classes Class[]
+
+  @@map("teacher_profiles")
+}
+
+// ─────────────────────────────────────────
+// CLASSES
+// ─────────────────────────────────────────
+
+model Class {
+  id          String   @id @default(cuid())
+  name        String
+  description String?
+  subject     String
+  batch       String?
+  section     String?
+  joinCode    String   @unique @default(cuid())
+  inviteLink  String   @unique @default(cuid())
+  isActive    Boolean  @default(true)
+  teacherId   String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  teacher     TeacherProfile     @relation(fields: [teacherId], references: [id])
+  enrollments Enrollment[]
+  assignments Assignment[]
+  liveSessions LiveSession[]
+  announcements Announcement[]
+  discussions DiscussionChannel[]
+  leaderboard LeaderboardEntry[]
+
+  @@map("classes")
+}
+
+model Enrollment {
+  id        String   @id @default(cuid())
+  studentId String
+  classId   String
+  joinedAt  DateTime @default(now())
+  isActive  Boolean  @default(true)
+
+  student StudentProfile @relation(fields: [studentId], references: [id])
+  class   Class          @relation(fields: [classId], references: [id])
+
+  @@unique([studentId, classId])
+  @@map("enrollments")
+}
+
+// ─────────────────────────────────────────
+// LEETCODE DATA
+// ─────────────────────────────────────────
+
+model LeetcodeSnapshot {
+  id              String   @id @default(cuid())
+  studentId       String
+  snapshotDate    DateTime @default(now())
+  totalSolved     Int      @default(0)
+  easySolved      Int      @default(0)
+  mediumSolved    Int      @default(0)
+  hardSolved      Int      @default(0)
+  ranking         Int?
+  reputation      Int?
+  contestRating   Float?
+  contestsAttended Int?
+  acceptanceRate  Float?
+
+  student StudentProfile @relation(fields: [studentId], references: [id])
+
+  @@index([studentId, snapshotDate])
+  @@map("leetcode_snapshots")
+}
+
+// ─────────────────────────────────────────
+// ASSIGNMENTS
+// ─────────────────────────────────────────
+
+model Assignment {
+  id          String          @id @default(cuid())
+  classId     String
+  title       String
+  description String
+  difficulty  DifficultyLevel @default(MEDIUM)
+  dueDate     DateTime
+  maxMarks    Int             @default(100)
+  resources   Json?
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+
+  class       Class                  @relation(fields: [classId], references: [id])
+  submissions AssignmentSubmission[]
+
+  @@map("assignments")
+}
+
+model AssignmentSubmission {
+  id           String           @id @default(cuid())
+  assignmentId String
+  studentId    String
+  status       AssignmentStatus @default(PENDING)
+  submittedAt  DateTime?
+  fileUrl      String?
+  notes        String?
+  marksObtained Int?
+  feedback     String?
+  gradedAt     DateTime?
+  createdAt    DateTime         @default(now())
+
+  assignment Assignment     @relation(fields: [assignmentId], references: [id])
+  student    StudentProfile @relation(fields: [studentId], references: [id])
+
+  @@unique([assignmentId, studentId])
+  @@map("assignment_submissions")
+}
+
+// ─────────────────────────────────────────
+// LIVE SESSIONS
+// ─────────────────────────────────────────
+
+model LiveSession {
+  id          String        @id @default(cuid())
+  classId     String
+  title       String
+  description String?
+  scheduledAt DateTime
+  duration    Int           // minutes
+  status      SessionStatus @default(SCHEDULED)
+  meetingUrl  String?
+  meetingId   String?
+  recordingUrl String?
+  createdAt   DateTime      @default(now())
+
+  class            Class              @relation(fields: [classId], references: [id])
+  attendanceRecords AttendanceRecord[]
+
+  @@map("live_sessions")
+}
+
+model AttendanceRecord {
+  id        String   @id @default(cuid())
+  sessionId String
+  studentId String
+  joinedAt  DateTime?
+  leftAt    DateTime?
+  duration  Int?     // seconds
+  isPresent Boolean  @default(false)
+
+  session LiveSession    @relation(fields: [sessionId], references: [id])
+  student StudentProfile @relation(fields: [studentId], references: [id])
+
+  @@unique([sessionId, studentId])
+  @@map("attendance_records")
+}
+
+// ─────────────────────────────────────────
+// COMMUNICATION
+// ─────────────────────────────────────────
+
+model Announcement {
+  id        String   @id @default(cuid())
+  classId   String
+  title     String
+  content   String
+  createdAt DateTime @default(now())
+
+  class Class @relation(fields: [classId], references: [id])
+
+  @@map("announcements")
+}
+
+model DiscussionChannel {
+  id      String @id @default(cuid())
+  classId String
+  name    String
+  topic   String?
+
+  class Class            @relation(fields: [classId], references: [id])
+  posts DiscussionPost[]
+
+  @@map("discussion_channels")
+}
+
+model DiscussionPost {
+  id        String   @id @default(cuid())
+  channelId String
+  authorId  String
+  content   String
+  fileUrl   String?
+  codeSnippet String?
+  createdAt DateTime @default(now())
+
+  channel DiscussionChannel @relation(fields: [channelId], references: [id])
+  author  User              @relation("DiscussionAuthor", fields: [authorId], references: [id])
+
+  @@map("discussion_posts")
+}
+
+model Message {
+  id         String   @id @default(cuid())
+  senderId   String
+  receiverId String
+  content    String
+  isRead     Boolean  @default(false)
+  createdAt  DateTime @default(now())
+
+  sender   User @relation("SentMessages", fields: [senderId], references: [id])
+  receiver User @relation("ReceivedMessages", fields: [receiverId], references: [id])
+
+  @@map("messages")
+}
+
+model Notification {
+  id        String           @id @default(cuid())
+  userId    String
+  type      NotificationType
+  title     String
+  message   String
+  isRead    Boolean          @default(false)
+  metadata  Json?
+  createdAt DateTime         @default(now())
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@map("notifications")
+}
+
+// ─────────────────────────────────────────
+// GAMIFICATION
+// ─────────────────────────────────────────
+
+model StudentBadge {
+  id        String    @id @default(cuid())
+  studentId String
+  badge     BadgeType
+  earnedAt  DateTime  @default(now())
+
+  student StudentProfile @relation(fields: [studentId], references: [id])
+
+  @@unique([studentId, badge])
+  @@map("student_badges")
+}
+
+model LeaderboardEntry {
+  id         String   @id @default(cuid())
+  classId    String
+  studentId  String
+  period     String   // "daily", "weekly", "monthly", "semester"
+  score      Float
+  rank       Int
+  xpPoints   Int
+  updatedAt  DateTime @updatedAt
+
+  class   Class          @relation(fields: [classId], references: [id])
+  student StudentProfile @relation(fields: [studentId], references: [id])
+
+  @@unique([classId, studentId, period])
+  @@map("leaderboard_entries")
+}
+
+// ─────────────────────────────────────────
+// AI INSIGHTS
+// ─────────────────────────────────────────
+
+model AiInsight {
+  id          String    @id @default(cuid())
+  studentId   String
+  classId     String
+  riskLevel   RiskLevel @default(HEALTHY)
+  score       Float
+  insights    Json
+  predictions Json
+  generatedAt DateTime  @default(now())
+
+  @@unique([studentId, classId])
+  @@map("ai_insights")
+}
+
+// ─────────────────────────────────────────
+// AUDIT
+// ─────────────────────────────────────────
+
+model AuditLog {
+  id        String   @id @default(cuid())
+  userId    String
+  action    String
+  resource  String
+  metadata  Json?
+  ipAddress String?
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@map("audit_logs")
+}
