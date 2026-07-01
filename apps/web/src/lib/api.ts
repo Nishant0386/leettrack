@@ -19,12 +19,7 @@ api.interceptors.response.use(
   (res) => res,
   async (err) => {
     if (err.response?.status === 401) {
-      const session = await getSession();
-      // Don't redirect dev-bypass sessions — the fake token will always 401
-      // against the real backend, but the UI session is still valid
-      if (session?.accessToken !== 'dev-bypass-token') {
-        window.location.href = '/auth/signin';
-      }
+      window.location.href = '/auth/signin';
     }
     return Promise.reject(err);
   },

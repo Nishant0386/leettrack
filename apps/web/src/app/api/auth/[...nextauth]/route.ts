@@ -8,80 +8,36 @@ import CredentialsProvider from 'next-auth/providers/credentials';
 // simply stores the backend-issued JWT in the session so client components
 // can read it via useSession().
 
-// ─── Dev Bypass Users (only used in development) ───────────────────────────
-// These match the seeded users from apps/api/src/prisma/seed.ts
-const DEV_USERS: Record<string, { id: string; name: string; email: string; image: string; role: string }> = {
-  TEACHER: {
-    id: 'dev-teacher-001',
-    name: 'Demo Teacher',
-    email: 'teacher@demo.com',
-    image: 'https://api.dicebear.com/7.x/avataaars/svg?seed=teacher',
-    role: 'TEACHER',
-  },
-  STUDENT: {
-    id: 'dev-student-001',
-    name: 'Demo Student',
-    email: 'student@demo.com',
-    image: 'https://api.dicebear.com/7.x/avataaars/svg?seed=student',
-    role: 'STUDENT',
-  },
-};
-
-const providers: NextAuthOptions['providers'] = [
-  CredentialsProvider({
-    name: 'LeetTrack',
-    credentials: {
-      accessToken: { label: 'Access Token', type: 'text' },
-      refreshToken: { label: 'Refresh Token', type: 'text' },
-    },
-    async authorize(credentials) {
-      if (!credentials?.accessToken) return null;
-
-      // Validate token against backend and fetch user profile
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/auth/me`, {
-        headers: { Authorization: `Bearer ${credentials.accessToken}` },
-      });
-      if (!res.ok) return null;
-
-      const user = await res.json();
-      return {
-        id: user.id,
-        name: user.name,
-        email: user.email,
-        image: user.avatarUrl,
-        role: user.role,
-        accessToken: credentials.accessToken,
-        refreshToken: credentials.refreshToken,
-      } as any;
-    },
-  }),
-];
-
-// In development, add a bypass provider that skips Google OAuth entirely
-if (process.env.NODE_ENV === 'development') {
-  providers.push(
+export const authOptions: NextAuthOptions = {
+  providers: [
     CredentialsProvider({
-      id: 'dev-bypass',
-      name: 'Dev Bypass',
+      name: 'LeetTrack',
       credentials: {
-        role: { label: 'Role', type: 'text' },
+        accessToken: { label: 'Access Token', type: 'text' },
+        refreshToken: { label: 'Refresh Token', type: 'text' },
       },
       async authorize(credentials) {
-        const role = credentials?.role as string;
-        const devUser = DEV_USERS[role];
-        if (!devUser) return null;
+        if (!credentials?.accessToken) return null;
+
+        // Validate token against backend and fetch user profile
+        const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/auth/me`, {
+          headers: { Authorization: `Bearer ${credentials.accessToken}` },
+        });
+        if (!res.ok) return null;
+
+        const user = await res.json();
         return {
-          ...devUser,
-          accessToken: 'dev-bypass-token',
-          refreshToken: 'dev-bypass-refresh',
+          id: user.id,
+          name: user.name,
+          email: user.email,
+          image: user.avatarUrl,
+          role: user.role,
+          accessToken: credentials.accessToken,
+          refreshToken: credentials.refreshToken,
         } as any;
       },
-    })
-  );
-}
-
-export const authOptions: NextAuthOptions = {
-  providers,
+    }),
+  ],
   session: { strategy: 'jwt', maxAge: 7 * 24 * 60 * 60 },
   callbacks: {
     async jwt({ token, user }) {

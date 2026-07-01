@@ -1,21 +1,11 @@
 'use client';
 // apps/web/src/app/auth/signin/page.tsx
-import { Code2, Shield, Lock, FlaskConical } from 'lucide-react';
-import { signIn } from 'next-auth/react';
-
-const isDev = process.env.NODE_ENV === 'development';
+import { Code2, Shield, Lock } from 'lucide-react';
 
 export default function SignInPage() {
   const handleGoogleSignIn = () => {
     const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api/v1';
     window.location.href = `${apiUrl}/auth/google`;
-  };
-
-  const handleDevLogin = async (role: 'TEACHER' | 'STUDENT') => {
-    await signIn('dev-bypass', {
-      role,
-      callbackUrl: role === 'TEACHER' ? '/teacher/dashboard' : '/student/dashboard',
-    });
   };
 
   return (
@@ -45,46 +35,6 @@ export default function SignInPage() {
             </svg>
             Continue with Google
           </button>
-
-          {/* ── Dev Bypass (only visible in development) ───────────────── */}
-          {isDev && (
-            <div className="mt-5">
-              <div className="relative flex items-center gap-3 mb-4">
-                <div className="flex-1 h-px bg-amber-200 dark:bg-amber-900" />
-                <span className="flex items-center gap-1.5 text-xs font-semibold text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-950 px-2 py-1 rounded-full border border-amber-200 dark:border-amber-800">
-                  <FlaskConical className="w-3 h-3" />
-                  DEV MODE — Skip Login
-                </span>
-                <div className="flex-1 h-px bg-amber-200 dark:bg-amber-900" />
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                <button
-                  id="dev-login-teacher"
-                  onClick={() => handleDevLogin('TEACHER')}
-                  className="flex flex-col items-center gap-1.5 px-3 py-3 rounded-xl border-2 border-dashed border-amber-300 dark:border-amber-700 hover:bg-amber-50 dark:hover:bg-amber-950 transition group"
-                >
-                  <span className="text-2xl">👨‍🏫</span>
-                  <span className="text-xs font-semibold text-amber-700 dark:text-amber-300">Teacher View</span>
-                  <span className="text-[10px] text-amber-500 dark:text-amber-500">Demo Teacher</span>
-                </button>
-
-                <button
-                  id="dev-login-student"
-                  onClick={() => handleDevLogin('STUDENT')}
-                  className="flex flex-col items-center gap-1.5 px-3 py-3 rounded-xl border-2 border-dashed border-amber-300 dark:border-amber-700 hover:bg-amber-50 dark:hover:bg-amber-950 transition group"
-                >
-                  <span className="text-2xl">👨‍💻</span>
-                  <span className="text-xs font-semibold text-amber-700 dark:text-amber-300">Student View</span>
-                  <span className="text-[10px] text-amber-500 dark:text-amber-500">Demo Student</span>
-                </button>
-              </div>
-
-              <p className="text-center text-[10px] text-amber-500 dark:text-amber-600 mt-2">
-                These buttons only appear in development mode
-              </p>
-            </div>
-          )}
 
           <div className="mt-6 pt-6 border-t border-gray-100 dark:border-gray-800 space-y-3">
             <div className="flex items-start gap-3 text-xs text-gray-500 dark:text-gray-400">
