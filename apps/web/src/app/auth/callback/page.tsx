@@ -1,13 +1,13 @@
 'use client';
 // apps/web/src/app/auth/callback/page.tsx
-export const dynamic = 'force-dynamic';
-
-import { useEffect, useState } from 'react';
+import { Suspense, useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { signIn } from 'next-auth/react';
 import { Loader2 } from 'lucide-react';
 
-export default function AuthCallbackPage() {
+export const dynamic = 'force-dynamic';
+
+function AuthCallbackContent() {
   const router = useRouter();
   const params = useSearchParams();
   const [error, setError] = useState<string | null>(null);
@@ -57,5 +57,22 @@ export default function AuthCallbackPage() {
         <p className="text-gray-500 text-sm">Signing you in...</p>
       </div>
     </div>
+  );
+}
+
+export default function AuthCallbackPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-950">
+          <div className="flex flex-col items-center gap-4">
+            <Loader2 className="w-8 h-8 text-brand-500 animate-spin" />
+            <p className="text-gray-500 text-sm">Loading...</p>
+          </div>
+        </div>
+      }
+    >
+      <AuthCallbackContent />
+    </Suspense>
   );
 }
