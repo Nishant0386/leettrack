@@ -1,6 +1,6 @@
 'use client';
 // apps/web/src/app/(dashboard)/teacher/classes/[classId]/dashboard/page.tsx
-import { useState } from 'react';
+import { use, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import {
   PieChart, Pie, Cell, LineChart, Line, BarChart, Bar,
@@ -19,9 +19,10 @@ import { cn } from '@/lib/utils';
 
 const DIFFICULTY_COLORS = { Easy: '#22c55e', Medium: '#f59e0b', Hard: '#ef4444' };
 
-interface PageProps { params: { classId: string } }
+interface PageProps { params: Promise<{ classId: string }> }
 
-export default function TeacherDashboard({ params }: PageProps) {
+export default function TeacherDashboard({ params: paramsPromise }: PageProps) {
+  const params = use(paramsPromise);
   const [period, setPeriod] = useState<'7d' | '30d' | '90d'>('30d');
   const [search, setSearch] = useState('');
 
